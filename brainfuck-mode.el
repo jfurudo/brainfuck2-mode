@@ -2,12 +2,19 @@
 
 (defun interpret-brainfuck (source)
   "Interpret brainfuck program."
-  (let (p (memory (make-vector brainfuck-mode-memory-size 0)))
-    (setq p 0)
-    (message (number-to-string p))
-    (brainfuck-mode-show p memory)))
+  (let ((pointer 0)
+        (memory (make-vector brainfuck-mode-memory-size 0))
+        (program-counter 0))
+    (let ((char (substring source program-counter (+ program-counter 1))))
+      (insert char)
+      (cond
+       (string= char "+")))
+    (message (number-to-string pointer))
+    (brainfuck-mode-show pointer memory)))
 
-(interpret-brainfuck "")
+(string= "+" "+")
+
+(interpret-brainfuck "++")+
 (message (number-to-string brainfuck-mode-memory-size))
 (make-vector 10 0)
 
