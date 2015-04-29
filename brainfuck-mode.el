@@ -1,17 +1,22 @@
+(setq load-path (cons "~/Development/Emacs-Lisp/brainfuck-mode" load-path))
+(require 'brainfuck-output-mode)
+
+(defface brainfuck-face-output-focused '((t . (:background "red" :foreground "black"))) "Face for the tile 2" :group 'brainfuck-mode-faces)
+
 (setq brainfuck-mode-memory-size 10)
 
-(defun interpret-brainfuck (source)
+(defun interpret-brainfuck (source interval)
   "Interpret brainfuck program."
   (let ((pointer 0)
         (memory (make-vector brainfuck-mode-memory-size 0))
         (program-counter 0)
-        (output-buffer (get-buffer-create "output"))
+        (output-buffer (get-buffer-create "*brainfuck-output*"))
         (result ""))
     (pop-to-buffer output-buffer)
+    (brainfuck-output-mode)
     (let ((i 0))
       (while (< program-counter (length source))
         (let ((operater (substring source program-counter (+ program-counter 1))))
-          ;; (brainfuck-execlude-operater pointer memory operater)
           (cond
            ((string= operater "+")
             (aset memory pointer (+ (aref memory pointer) 1)))
@@ -29,12 +34,11 @@
            ((string= operater "]")
             (if (not (= (aref memory pointer) 0))
                 (jump-to-open-bracket)))))
+        (brainfuck-mode-show)
+        (sit-for interval)
         (incf program-counter)
-        (insert (number-to-string program-counter))
         (incf i)))
-    (insert (brainfuck-mode-show pointer memory))))
-
-; (brainfuck-mode-show 0 (make-vector brainfuck-mode-memory-size 0))
+    ))
 
 (defun jump-to-close-bracket ()
   (catch 'found-open-bracket
@@ -49,41 +53,38 @@
       (if (= ?\[ (aref source program-counter))
           (throw 'found-close-bracket t)
         (decf program-counter)))))
+(defun brainfuck-execlude-operater ())
 
-(defun brainfuck-execlude-operater (pointer memory operater)
-  (cond
-   ((string= operater "+")
-    (aset memory pointer (+ (aref memory pointer) 1)))
-   ((string= operater "-")
-    (aset memory pointer (- (aref memory pointer) 1)))
-   ((string= operater ">")
-    (incf pointer))
-   ((string= operater "<")
-    (decf pointer))
-   (t (insert "not inplemented"))))
-
-(defun hoge ()
-    (let ((pointer 0) (memory (make-vector brainfuck-mode-memory-size 0)))
-      (brainfuck-execlude-operater pointer memory ">")))
-
-(brainfuck-execlude-operater '0 (make-vector brainfuck-mode-memory-size 0) ">")
-
-;; show pointer and memory.
-(defun brainfuck-mode-show (pointer memory)
+(defun brainfuck-mode-show ()
   "Show memory state."
-  (let ((pointer-line "pointer: ") (memory-line "address: ") (result-line "result: "))
+  (erase-buffer)
+  (let ((source-line "source: ")
+        (pointer-line "pointer: ")
+        (memory-line "address: ")
+        (result-line "result: "))
+    (setq source-line (concat source-line source))
     (setq pointer-line (concat pointer-line (number-to-string pointer)))
     (let ((i 0))
       (while (< i brainfuck-mode-memory-size)
         (setq memory-line
               (concat memory-line " "
-                      (number-to-string (aref memory i))))
+                      (format "%02x" (aref memory i))))
         (setq i (+ i 1))))
-    (concat pointer-line "\n" memory-line "\n" result-line result)))
+    (set-buffer output-buffer)
+    (put-text-property (brainfuck-source-point ?s) (brainfuck-source-point ?e) 'face 'brainfuck-face-output-focused source-line)
+    (put-text-property (brainfuck-memory-point ?s) (brainfuck-memory-point ?e) 'face 'brainfuck-face-output-focused memory-line)
+    (insert (concat source-line "\n" pointer-line "\n" memory-line "\n" result-line result))))
 
-(1+ brainfuck-mode-memory-size)
+(defun brainfuck-source-point (start-or-end)
+  (if (= start-or-end ?s)
+      (+ 8 program-counter)
+    (+ 8 (+ 1 program-counter))))
 
-(interpret-brainfuck "++++[>++++<-]+.")
+(defun brainfuck-memory-point (start-or-end)
+  (if (= start-or-end ?s)
+      (+ 10 (* 3 pointer))
+    (+ 12 (* 3 pointer))))
+
+(interpret-brainfuck "+++++++++[>++++++++<-]>.<+++++++++[>+++<-]>++.+++++++..+++.<+++++++++[>-------<-]>----.<+++++++++[>-<-]>---.<+++++++++[>++++++<-]>+.<+++++++++[>++<-]>++++++.+++.------.--------." 0.05)
 
 (provide 'brainfuck-mode)
-
